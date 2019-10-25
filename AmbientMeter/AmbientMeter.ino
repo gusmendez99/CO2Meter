@@ -36,9 +36,7 @@
 //                                                   DEFINES
 //---------------------------------------------------------------------------------------------------------------
 #define anInput     A0                        //analog feed from MQ135
-#define digTrigger   2                        //digital feed from MQ135
 #define co2Zero     55                        //calibrated CO2 0 level
-#define led          9                        //led on pin 9
 #define BME_SCK 8                            //puertos del sensor
 #define BME_MISO 7
 #define BME_MOSI 6
@@ -58,17 +56,17 @@ Adafruit_BME280 bme(BME_CS);
 
 unsigned long delayTime;
 
+
 void setup() {
   
   pinMode(anInput,INPUT);                     //MQ135 analog feed set for input
-  pinMode(digTrigger,INPUT);                  //MQ135 digital feed set for input
-  pinMode(led,OUTPUT);                        //led set for output
+  pinMode(9,OUTPUT);                        //led set for output
   Serial.begin(9600);                        //serial comms for debuging
 
   Serial.print("Initializing SD card...");
 
   // see if the card is present and can be initialized:
-  if (!SD.begin(chipSelect)) {
+  if (!SD.begin(4)) {
     Serial.println("Card failed, or not present");
     // don't do anything more:
     while (1);
@@ -133,50 +131,50 @@ void loop() {
     Serial.print(co2ppm);
     Serial.println(" PPM");
     if(co2ppm>999){                             //if co2 ppm > 1000
-      digitalWrite(led,HIGH);                   //turn on led
+      digitalWrite(9,HIGH);                   //turn on led
     }
     
     else {                                       //if not
-      digitalWrite(led,LOW);                    //turn off led
+      digitalWrite(9,LOW);                    //turn off led
     }
 
     
    //-----------------------------------------TEMP MEASURE----------------------------------------------
     
-    Serial.print("Temperature = ");
-    float temp = bme.readTemperature();
-    dataString += String(temp);
+   // Serial.print("Temperature = ");
+    //float temp = bme.readTemperature();
+    dataString += String(bme.readTemperature());
     dataString += ",";
-    Serial.print(temp);
-    Serial.println(" *C");
+    //Serial.print(temp);
+    //Serial.println(" *C");
     
 
    //-----------------------------------------PRESSURE MEASURE----------------------------------------------
 
-    Serial.print("Pressure = ");
-    float pressure = bme.readPressure() / 100.0F;
-    dataString += pressure;
+    //Serial.print("Pressure = ");
+    //float pressure = bme.readPressure() / 100.0F;
+    dataString += String(bme.readPressure() / 100.0F);
     dataString += ",";
-    Serial.print(pressure);
-    Serial.println(" hPa");
+    //Serial.print(pressure);
+    //Serial.println(" hPa");
 
 
    //-----------------------------------------ALTITUDE MEASURE----------------------------------------------
-    Serial.print("Approx. Altitude = ");
-    float altitude = bme.readAltitude(SEALEVELPRESSURE_HPA);
-    dataString += altitude;
+    //Serial.print("Approx. Altitude = ");
+    //float altitude = bme.readAltitude(SEALEVELPRESSURE_HPA);
+    dataString += String(bme.readAltitude(SEALEVELPRESSURE_HPA));
     dataString += ",";
-    Serial.print(aktitude);
-    Serial.println(" m");
+    //Serial.print(altitude);
+    //Serial.println(" m");
 
    //-----------------------------------------HUMIDITY MEASURE----------------------------------------------
 
-    Serial.print("Humidity = ");
-    float humidity = bme.readHumidity();
-    dataString += humidity;
+    //Serial.print("Humidity = ");
+    //float humidity = bme.readHumidity();
+    dataString += String(bme.readHumidity());
     dataString += ",";
-    Serial.print(humidity);
-    Serial.println(" %");
+    //Serial.print(humidity);
+    //Serial.println(" %");
 
 
     //---------------------------------------STORE THE DATA -------------------------------------------------
