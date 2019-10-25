@@ -172,7 +172,6 @@ void loop() {
     //Serial.print("Humidity = ");
     //float humidity = bme.readHumidity();
     dataString += String(bme.readHumidity());
-    dataString += ",";
     //Serial.print(humidity);
     //Serial.println(" %");
 
