@@ -165,7 +165,7 @@ int main(void)
 		cudaMemcpyAsync(d_b2, b2, size, cudaMemcpyHostToDevice, stream2);
         cudaMemcpyAsync(d_c2, c2, size, cudaMemcpyHostToDevice, stream2);
         getGasModelKernel2<<<1,N,1,stream2>>>(d_a2, d_b2, d_c2, d_d2);
-		cudaMemcpyAsync(d2, d_c2, size, cudaMemcpyDeviceToHost, stream2);
+		cudaMemcpyAsync(d2, d_d2, size, cudaMemcpyDeviceToHost, stream2);
     }
     
 	cudaStreamSynchronize(stream1); // wait for stream1 to finish
@@ -178,24 +178,24 @@ int main(void)
     //A304
     //Some values of real CO2 from 3000 to 3010
     printf("MODEL CO2 - A304 = [");
-    for (i=25000; i<25010; i++) printf(" %4.3f", d1[i]);
+    for (int j=25000; j<25010; j++) printf(" %4.3f", d1[j]);
     printf(" ...]\n");
 
     //Some values of real CO2 from 3000 to 3010
     printf("REAL CO2 - A304= [");
-    for (i=25000; i<25010; i++) printf(" %4.3f", a1[i]);
+    for (int j=25000; j<25010; j++) printf(" %4.3f", a1[j]);
     printf(" ...]\n");
     
     
     //C114
     //Some values of real CO2 from 3000 to 3010
     printf("MODEL CO2 - C114 = [");
-    for (i=25000; i<25010; i++) printf(" %4.3f", d2[i]);
+    for (int j=25000; j<25010; j++) printf(" %4.3f", d2[j]);
     printf(" ...]\n");
 
     //Some values of real CO2 from 3000 to 3010
     printf("REAL CO2 - C114 = [");
-    for (i=25000; i<25010; i++) printf(" %4.3f", a2[i]);
+    for (int j=25000; j<25010; j++) printf(" %4.3f", a2[j]);
     printf(" ...]\n");
 
 
