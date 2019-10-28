@@ -21,12 +21,23 @@ Description: Test of measurement model of CO2 in a closed environment, depending
 #include <fstream>
 using namespace std;
 
-#define N (83500) //Threads, and length of arrays declared
-#define THREADS_PER_BLOCK (240) //Threads per block 
-#define N_BLOCKS (N/THREADS_PER_BLOCK)
+#define N 83000                 //Threads, and length of arrays declared
+
+#define R (8.314f)               //Gas constant
+#define ACH (3.5f)               //ACH for a classroom
+#define CO2_MASS (44.01f)        //CO2 Molar mass 
+#define CO2_ADULT_GAIN (0.0052f) //CO2 gain by an adult, in l/s
+#define A304_VOLUME (114.20f)    //m3
+#define C114_VOLUME (125.625f)   //m3
+#define A304_PERSONS (22.0f)       // no. persons in this classroom
+#define C114_PERSONS (16.0f)       // no. persons in this classroom
+
+#define CO2_OUTDOOR (404.0f)       //CO2 outside, in PPM
+#define PRESSURE_OUTDOOR (852.0f)  //Pressure outside
+#define TEMP_OUTDOOR (24.1f)     //Temperature outside 
 
 /* Function to load data from CSV file */
-void loadGasParams (double *vector1, double *vector2, double *vector3, double *vector4, int n)
+void loadGasParams (float *a, float *b, float *c, int n)
 {
     //Loading CSV
 	ifstream ip("finalData.csv");
@@ -45,41 +56,42 @@ void loadGasParams (double *vector1, double *vector2, double *vector3, double *v
 		getline(ip, temperatureString, ',');
 		getline(ip, pressureString, '\n');
 
-		//Cast string to double, and saving values in array
-		vector1[i] = ::atof(gasString.c_str());
-		vector2[i] = ::atof(temperatureString.c_str());
-        vector3[i] = ::atof(pressureString.c_str());
-        vector4[i] = 0.0;
+        //Cast string to float, and saving values in array
+		double gasDouble = ::atof(gasString.c_str());
+		double tempDouble = ::atof(temperatureString.c_str());
+        double pressureDouble = ::atof(pressureString.c_str());
+
+        a[i] = float(gasDouble);
+        b[i] = float(tempDouble);
+        c[i] = float(pressureDouble);
+
         i++;
 				
     }
     
-    printf("# of data: %d \n", i - 1);
+    printf("# OF DATA: %d \n", i - 1);
 
 	ip.close();
     return;
 }
 
 /* CO2 model check function */
-__global__ void gasMeterModelCalc(double *a, double *b, double *c, double *e, double *average)
+__global__ void gasMeterModelCalc(float *a, float *b, float *c, float *e)
 {
-    //__shared__ int productTempVector[THREADS_PER_BLOCK]; //All threads in a block must be able to access this array
+    
+    //AVG a[index]
+    float currVolume = (N/2 > 41500) ? C114_VOLUME : A304_VOLUME;
+    float currPersons = (N/2 > 41500) ? C114_PERSONS : A304_PERSONS;
 
-    int index = threadIdx.x + blockIdx.x * blockDim.x; //index
-    //productTempVector[threadIdx.x] = a[index] * b[index];
-
-    if(index==0) *average = 0; 
-    __syncthreads();    
-
-    if( 0 == threadIdx.x ) //Every block to do average += sum
-    {
-        /*double sum = 0.0;
-        for(int j=0; j < THREADS_PER_BLOCK; j++) sum += productTempVector[j];
-        atomicAdd(average, sum);*/
-    }
+    int index = threadIdx.x + blockDim.x * blockIdx.x;				
+	if (index < N)
+	{
+		e[index] = (b[index] / (c[index] * (1 + ACH * (index/10)))) * ( ((a[0] * c[0])/b[0]) + ( (((CO2_ADULT_GAIN * currPersons * R)/(CO2_MASS * currVolume)) + ((CO2_OUTDOOR * PRESSURE_OUTDOOR * ACH)/(TEMP_OUTDOOR))) * (index/10)));
+	}
+    
 }
 
-int main(void)
+int main(int argc, char** argv)
 {
     /* Vectors contains:
         - a: real CO2 value, in PPM
@@ -88,65 +100,63 @@ int main(void)
         - e: CO2 model value, in PPM
     */
 
-    double *a, *b, *c, *e, *gasAverage; //host copies of a,b,c vectors
-    double *d_a, *d_b, *d_c, *d_e, *d_gasAverage; //device copies of a,b,c etc
+    cudaStream_t myStream;
+    cudaStreamCreate(&myStream);
+    
+    float *a, *b, *c, *e; //host copies of a,b,c vectors
+    float *d_a, *d_b, *d_c, *d_e; //device copies of a,b,c etc
 
-    int size = N * sizeof(double); //size of memory that needs to be allocated
+    int size = N * sizeof(float); //size of memory that needs to be allocated
 
-    //Allocate space for device copies of a,b,c
+    //Allocate space for device copies of a,b,c, e
     cudaMalloc((void **)&d_a, size);
     cudaMalloc((void **)&d_b, size);
     cudaMalloc((void **)&d_c, size);
     cudaMalloc((void **)&d_e, size);
 
-    //Setup input values
-    a = (double *)malloc(size);
-    b = (double *)malloc(size);
-    c = (double *)malloc(size);
-    e = (double *)malloc(size);
-    loadGasParams(a,b,c,e, N);
+    //Allows device to get access to memory
+    cudaHostAlloc( (void**)&a, N * sizeof(int), cudaHostAllocDefault);	 
+    cudaHostAlloc( (void**)&b, N * sizeof(int), cudaHostAllocDefault);
+    cudaHostAlloc( (void**)&c, N * sizeof(int), cudaHostAllocDefault);
+    cudaHostAlloc( (void**)&e, N * sizeof(int), cudaHostAllocDefault);
 
-    //Copy inputs to device
-    cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_b, b, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_c, c, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_e, e, size, cudaMemcpyHostToDevice);
-
-
-    //Gas AVG
-    gasAverage = (double *)malloc(sizeof(double)); //Allocate host memory to gasAverage
-    *gasAverage = 0.0; 
-    cudaMalloc((void **)&d_gasAverage, sizeof(double)); //Allocate device memory to d_gasAverage
-
-    
+    //loading arrays
+    loadGasParams(a, b, c, N);
 
     //Timing
     struct timeval t1, t2;
     gettimeofday(&t1, 0);
-    
-    /*
-    gasMeterModelCalc<<<N_BLOCKS,THREADS_PER_BLOCK>>>(d_a, d_b, d_c, d_e, d_gasAverage); 
-    cudaMemcpy(dotProduct, d_dotProduct, sizeof(int), cudaMemcpyDeviceToHost); //Copy result into gasAverage
-    printf("\n CO2 AVG: %d\n", *gasAverage); //Output result
-    */
+
+    //Using streams
+    for(int i=0; i < N; i+= N*2) { 
+        // using stream 1 and steam 2
+        cudaMemcpyAsync(d_a, a, N*sizeof(int), cudaMemcpyHostToDevice, myStream);
+        cudaMemcpyAsync(d_b, b, N*sizeof(int), cudaMemcpyHostToDevice, myStream);
+        cudaMemcpyAsync(d_c, c, N*sizeof(int), cudaMemcpyHostToDevice, myStream);
+        
+        
+        gasMeterModelCalc<<<(int)ceil(N/1024)+1, 1024, 0, myStream>>>(d_a, d_b, d_c, d_e);
+        cudaMemcpyAsync(e, d_e, N*sizeof(int), cudaMemcpyDeviceToHost, myStream);
+    }
 
     gettimeofday(&t2, 0);
-    double time = (1000000.0*(t2.tv_sec-t1.tv_sec) + t2.tv_usec-t1.tv_usec)/1000.0;
-    printf("TIME FOR 240 THREADS / 1 BLOCKS:  %3.3f ms \n", time);
+    float time = (1000000.0*(t2.tv_sec-t1.tv_sec) + t2.tv_usec-t1.tv_usec)/1000.0;
+    printf("EXECUTION TIME:  %5.4f ms \n", time);
 
-    //Clean
-    free(a); 
-    free(b); 
-    free(c); 
-    free(e);
-    free(gasAverage);
 
-    //Cuda free
-    cudaFree(d_a); 
-    cudaFree(d_b); 
-    cudaFree(d_c); 
-    cudaFree(d_e);
-    cudaFree(d_gasAverage);
+    int i;
+    //Some values of real CO2 from 3000 to 3010
+    printf("MODEL CO2 = [");
+    for (i=25000; i<25010; i++) printf(" %4.3f", e[i]);
+    printf(" ...]\n");
 
-    return 0;
+    //Some values of real CO2 from 3000 to 3010
+    printf("REAL CO2 = [");
+    for (i=25000; i<25010; i++) printf(" %4.3f", a[i]);
+    printf(" ...]\n");
+
+    
+    //Destroying stream used
+    cudaStreamDestroy(myStream);
+	return 0;
 } 
