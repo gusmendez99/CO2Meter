@@ -243,7 +243,7 @@ int main(int argc, char** argv)
     //Get avg and desvest
     double avg1 = avaregeOf(a1, N);
     double desvest1 = standardDeviationdOf(a1, N);
-    printf("A-306\n AVG: %5.4f - DESVEST: %5.4f\n\n", avg1, desvest1);
+    printf("A-304\n AVG: %5.4f - DESVEST: %5.4f\n\n", avg1, desvest1);
     double avg2 = avaregeOf(a2, N);
     double desvest2 = standardDeviationdOf(a2, N);
     printf("C-114\n AVG: %5.4f - DESVEST: %5.4f\n", avg2, desvest2);
