@@ -233,6 +233,7 @@ int main(int argc, char** argv)
      system("gnuplot -p -e \"plot 'data.txt' using 1:4 w lines t 'CO2 Modelo C114', 'data.txt' using 1:5 w lines t 'CO2 Real C114'\"");
  
 
+    
 
     //Destroying stream used
     cudaStreamDestroy(stream1);
@@ -243,3 +244,31 @@ int main(int argc, char** argv)
 
 	return 0;
 } 
+
+double avaregeOf(double a[], int N){
+
+    double sum;
+
+    for(int i=0; i<N;i++){
+        sum += a[i];
+    }
+
+    return sum/N;
+}
+
+
+double standardDeviationdOf(double a[], N){
+
+    avarage = avaregeOf(a ,N);
+    
+    double sd;
+
+    for(int i=0;i<N;i++){
+
+        sd += pow(a[i] - avarage, 2);
+
+    }
+
+    return sqrt(sd/N);
+
+}
