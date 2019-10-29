@@ -205,6 +205,7 @@ int main(int argc, char** argv)
     for (int j=12000; j<12020; j++) printf(" %5.3f", d1[j]);
     printf(" ...]\n");
 
+
     
     
     //C114
@@ -216,6 +217,21 @@ int main(int argc, char** argv)
     gettimeofday(&t2, 0);
     double time = (1000000.0*(t2.tv_sec-t1.tv_sec) + t2.tv_usec-t1.tv_usec)/1000.0;
     printf("EXECUTION TIME:  %5.4f ms \n", time);
+
+
+     //Graphics
+     ofstream myFile;
+     myFile.open("data.txt");
+     float deltaTime = 0;
+     for(int i=0;i<41500;i++){
+         myFile << deltaTime << " " <<  a1[i] << " " << d1[i] << " " << a2[i] << " " << d2[i] << "\n";
+         deltaTime += 0.1f;
+     }
+     myFile.close();
+ 
+     system("gnuplot -p -e \"plot 'data.txt' using 1:2 w lines t 'CO2 Modelo A304', 'data.txt' using 1:3 w lines t 'CO2 Real A304'\"");
+     system("gnuplot -p -e \"plot 'data.txt' using 1:4 w lines t 'CO2 Modelo C114', 'data.txt' using 1:5 w lines t 'CO2 Real C114'\"");
+ 
 
 
     //Destroying stream used
