@@ -58,7 +58,8 @@ __global__ void getGasModelKernel2(double *a2, double *b2, double *c2, double *d
     double currPersons = C114_PERSONS;
 
     int index = threadIdx.x + blockDim.x * blockIdx.x;				
-	if (index < N)
+    if (index < N)
+    
 	{
 		d2[index] = (b2[index] / (c2[index] * (1 + ACH * (index/10)))) * ( ((a2[0] * c2[0])/b2[0]) + ( (((CO2_ADULT_GAIN * currPersons * R)/(CO2_MASS * currVolume)) + ((CO2_OUTDOOR * PRESSURE_OUTDOOR * ACH)/(TEMP_OUTDOOR))) * (index/10)));
 	}
@@ -121,6 +122,8 @@ int main(int argc, char** argv)
 	string gasString, temperatureString, pressureString;
 
     int i = 0;
+    bool isFirstClassRoom = true;
+
 	while (ip.good())
 	{
 		//Reading by columns
@@ -128,17 +131,24 @@ int main(int argc, char** argv)
 		getline(ip, temperatureString, ',');
 		getline(ip, pressureString, '\n');
 
-        if(i < N) {
+        if(isFirstClassRoom) {
             a1[i] = ::atof(gasString.c_str());
             b1[i] = ::atof(temperatureString.c_str());
             c1[i] = ::atof(pressureString.c_str());
         } else {
             a2[i] = ::atof(gasString.c_str());
             b2[i] = ::atof(temperatureString.c_str());
-            c2[i] = ::atof(pressureString.c_str());
+            c2[i] = ::atof(pressureString.c_str());     
         }
 
         i++;
+
+        if(i > N) {
+            isFirstClassRoom = false;
+            i = 0;
+        }
+
+        
 				
     }
     
@@ -147,12 +157,12 @@ int main(int argc, char** argv)
     
     //Some values of real CO2 from 3000 to 3010
     printf("REAL CO2 - A304= [");
-    for (int j=0; j<12; j++) printf(" %4.3f", a1[j]);
+    for (int j=0; j<12; j++) printf(" %5.3f", a1[j]);
     printf(" ...]\n");
 
     //Some values of real CO2 from 3000 to 3010
     printf("REAL CO2 - C114 = [");
-    for (int k=0; k<12; k++) printf(" %4.3f", a2[k]);
+    for (int k=0; k<12; k++) printf(" %5.3f", a2[k]);
     printf(" ...]\n");
     
 
@@ -186,7 +196,7 @@ int main(int argc, char** argv)
     //A304
     //Some values of real CO2 from 3000 to 3010
     printf("MODEL CO2 - A304 = [");
-    for (int j=0; j<12; j++) printf(" %4.3f", d1[j]);
+    for (int j=0; j<12; j++) printf(" %5.3f", d1[j]);
     printf(" ...]\n");
 
     
@@ -194,7 +204,7 @@ int main(int argc, char** argv)
     //C114
     //Some values of real CO2 from 3000 to 3010
     printf("MODEL CO2 - C114 = [");
-    for (int k=0; k<12; k++) printf(" %4.3f", d2[k]);
+    for (int k=0; k<12; k++) printf(" %5.3f", d2[k]);
     printf(" ...]\n");
 
     gettimeofday(&t2, 0);
