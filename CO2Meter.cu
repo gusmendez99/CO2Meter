@@ -30,11 +30,58 @@ const double CO2_ADULT_GAIN = 0.0052;   //CO2 gain by an adult, in l/s
 const double A304_VOLUME = 114.20;      //m3
 const double C114_VOLUME = 125.625;     //m3
 const double A304_PERSONS = 22.0;       // no. persons in this classroom
-const double C114_PERSONS = 16.0;       // no. persons in this classroom
+const double C114_PERSONS = 14.0;       // no. persons in this classroom
 
 const double CO2_OUTDOOR = 404.0;       //CO2 outside, in PPM
 const double PRESSURE_OUTDOOR = 852.0;  //Pressure outside
 const double TEMP_OUTDOOR = 24.1;       //Temperature outside 
+
+
+/* Function to load data from CSV file */
+void loadGasParams (double *a1, double *b1, double *c1, double *a2, double *b2, double *c2 )
+{
+    //Loading CSV
+	ifstream ip("finalData.csv");
+
+	if (!ip.is_open())
+		std::cout << "ERROR: File Open" << '\n';
+
+	//Gas means CO2 value, in PPM
+	string gasString, temperatureString, pressureString;
+
+    int i = 0;
+    bool isFirstClassRoom = true;
+
+	while (ip.good())
+	{
+		//Reading by columns
+		getline(ip, gasString, ',');
+		getline(ip, temperatureString, ',');
+		getline(ip, pressureString, '\n');
+
+        if(isFirstClassRoom) {
+            a1[i] = ::atof(gasString.c_str());
+            b1[i] = ::atof(temperatureString.c_str());
+            c1[i] = ::atof(pressureString.c_str());
+        } else {
+            a2[i] = ::atof(gasString.c_str());
+            b2[i] = ::atof(temperatureString.c_str());
+            c2[i] = ::atof(pressureString.c_str());     
+        }
+
+        i++;
+
+        if(i > N) {
+            isFirstClassRoom = false;
+            i = 0;
+        }
+
+    }
+    
+    printf("# OF DATA: %d \n", i - 1);
+	ip.close();
+    return;
+}
 
 /* CO2 model check function */
 __global__ void getGasModelKernel1(double *a1, double *b1, double *c1, double *d1)
@@ -112,57 +159,16 @@ int main(int argc, char** argv)
             - C114: 41501 - 83000 
     */
 
-
-	ifstream ip("finalData.csv");
-
-	if (!ip.is_open())
-		std::cout << "ERROR: File Open" << '\n';
-
-	//Gas means CO2 value, in PPM
-	string gasString, temperatureString, pressureString;
-
-    int i = 0;
-    bool isFirstClassRoom = true;
-
-	while (ip.good())
-	{
-		//Reading by columns
-		getline(ip, gasString, ',');
-		getline(ip, temperatureString, ',');
-		getline(ip, pressureString, '\n');
-
-        if(isFirstClassRoom) {
-            a1[i] = ::atof(gasString.c_str());
-            b1[i] = ::atof(temperatureString.c_str());
-            c1[i] = ::atof(pressureString.c_str());
-        } else {
-            a2[i] = ::atof(gasString.c_str());
-            b2[i] = ::atof(temperatureString.c_str());
-            c2[i] = ::atof(pressureString.c_str());     
-        }
-
-        i++;
-
-        if(i > N) {
-            isFirstClassRoom = false;
-            i = 0;
-        }
-
-        
-				
-    }
-    
-    printf("# OF DATA: %d \n", i - 1);
-	ip.close();
+	loadGasParams(a1, b1, c1, a2, b2, c2);
     
     //Some values of real CO2 from 3000 to 3010
     printf("REAL CO2 - A304= [");
-    for (int j=0; j<12; j++) printf(" %5.3f", a1[j]);
+    for (int j=12000; j<12020; j++) printf(" %5.3f", a1[j]);
     printf(" ...]\n");
 
     //Some values of real CO2 from 3000 to 3010
     printf("REAL CO2 - C114 = [");
-    for (int k=0; k<12; k++) printf(" %5.3f", a2[k]);
+    for (int k=12000; k<12020; k++) printf(" %5.3f", a2[k]);
     printf(" ...]\n");
     
 
@@ -196,7 +202,7 @@ int main(int argc, char** argv)
     //A304
     //Some values of real CO2 from 3000 to 3010
     printf("MODEL CO2 - A304 = [");
-    for (int j=0; j<12; j++) printf(" %5.3f", d1[j]);
+    for (int j=12000; j<12020; j++) printf(" %5.3f", d1[j]);
     printf(" ...]\n");
 
     
@@ -204,16 +210,12 @@ int main(int argc, char** argv)
     //C114
     //Some values of real CO2 from 3000 to 3010
     printf("MODEL CO2 - C114 = [");
-    for (int k=0; k<12; k++) printf(" %5.3f", d2[k]);
+    for (int k=12000; k<12020; k++) printf(" %5.3f", d2[k]);
     printf(" ...]\n");
 
     gettimeofday(&t2, 0);
     double time = (1000000.0*(t2.tv_sec-t1.tv_sec) + t2.tv_usec-t1.tv_usec)/1000.0;
     printf("EXECUTION TIME:  %5.4f ms \n", time);
-
-    
-
-    
 
 
     //Destroying stream used
