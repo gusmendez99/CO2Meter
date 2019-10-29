@@ -36,6 +36,27 @@ const double CO2_OUTDOOR = 404.0;       //CO2 outside, in PPM
 const double PRESSURE_OUTDOOR = 852.0;  //Pressure outside
 const double TEMP_OUTDOOR = 24.1;       //Temperature outside 
 
+//Gets AVG of a vector
+double avaregeOf(double *a, int n)
+{
+    double sum;
+    for(int i=0; i<n;i++){
+        sum += a[i];
+    }
+    return sum/n;
+}
+
+//gets desvest of a vector
+double standardDeviationdOf(double *a, int n)
+{
+    double avarage = avaregeOf(a ,n);    
+    double sd;
+    for(int i=0;i<n;i++){
+        sd += pow(a[i] - avarage, 2);
+    }
+    return sqrt(sd/n);
+
+}
 
 /* Function to load data from CSV file */
 void loadGasParams (double *a1, double *b1, double *c1, double *a2, double *b2, double *c2 )
@@ -216,7 +237,16 @@ int main(int argc, char** argv)
 
     gettimeofday(&t2, 0);
     double time = (1000000.0*(t2.tv_sec-t1.tv_sec) + t2.tv_usec-t1.tv_usec)/1000.0;
-    printf("EXECUTION TIME:  %5.4f ms \n", time);
+    printf("EXECUTION TIME:  %5.4f ms \n\n\n", time);
+
+
+    //Get avg and desvest
+    double avg1 = avaregeOf(a1, N);
+    double desvest1 = standardDeviationdOf(a1, N);
+    printf("A-306\n AVG: %5.4f - DESVEST: %5.4f\n\n", avg1, desvest1);
+    double avg2 = avaregeOf(a2, N);
+    double desvest2 = standardDeviationdOf(a2, N);
+    printf("C-114\n AVG: %5.4f - DESVEST: %5.4f\n", avg2, desvest2);
 
 
      //Graphics
@@ -243,32 +273,4 @@ int main(int argc, char** argv)
     cudaFree(d_d2);
 
 	return 0;
-} 
-
-double avaregeOf(double a[], int N){
-
-    double sum;
-
-    for(int i=0; i<N;i++){
-        sum += a[i];
-    }
-
-    return sum/N;
-}
-
-
-double standardDeviationdOf(double a[], N){
-
-    avarage = avaregeOf(a ,N);
-    
-    double sd;
-
-    for(int i=0;i<N;i++){
-
-        sd += pow(a[i] - avarage, 2);
-
-    }
-
-    return sqrt(sd/N);
-
 }
